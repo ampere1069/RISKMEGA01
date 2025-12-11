@@ -1,0 +1,1709 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>關注事件風險分析報告</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- 引入拖曳排序庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0c2461 0%, #1e3799 50%, #4a69bd 100%);
+            color: #333;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1600px; /* 增加最大寬度以容納更大的LOGO */
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 40px 20px; /* 增加內距以容納更大的LOGO */
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71, #3498db);
+        }
+        
+        .title-container {
+            display: flex;
+            flex-direction: column; /* 修改為垂直排列 */
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .ste-logo {
+            width: 500px; /* 放大到500px */
+            height: 500px; /* 放大到500px */
+            margin-bottom: 40px; /* 修改為底部間距 */
+            object-fit: contain;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 4rem; /* 增加字體大小 */
+            margin-bottom: 0;
+            font-weight: 900;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            letter-spacing: 1px;
+            line-height: 1.2;
+            text-align: center; /* 確保文字置中 */
+        }
+        
+        .subtitle {
+            display: none; /* 隱藏副標題 */
+            color: #7f8c8d;
+            font-size: 2rem; /* 增加字體大小 */
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .date-badge {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.4rem;
+            margin-top: 15px;
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px 15px 0 0;
+            overflow: hidden;
+            margin-bottom: 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            /* 新增拖曳相關樣式 */
+            cursor: grab;
+            user-select: none;
+        }
+        
+        .tabs:active {
+            cursor: grabbing;
+        }
+        
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 25px 10px;
+            font-size: 1.8rem; /* 增加字體大小 */
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #2c3e50;
+            border-bottom: 5px solid transparent;
+            letter-spacing: 0.5px;
+            /* 新增拖曳樣式 */
+            touch-action: none;
+            position: relative;
+        }
+        
+        /* 拖曳時的樣式提示 */
+        .tab.sortable-ghost {
+            opacity: 0.5;
+            background: rgba(52, 152, 219, 0.2);
+        }
+        
+        .tab.sortable-chosen {
+            background: rgba(52, 152, 219, 0.3);
+            box-shadow: inset 0 0 0 2px #3498db;
+        }
+        
+        .tab.sortable-drag {
+            opacity: 0.8;
+        }
+        
+        /* 拖曳手柄樣式 */
+        .tab::after {
+            content: "\f0c9";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1rem;
+            color: rgba(44, 62, 80, 0.3);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .tab:hover::after {
+            opacity: 1;
+        }
+        
+        .tab:hover {
+            background: rgba(52, 152, 219, 0.1);
+        }
+        
+        .tab.active {
+            background: white;
+            color: #e74c3c;
+            border-bottom: 5px solid #e74c3c;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 40px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            min-height: 600px;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.8s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .section-title {
+            color: #2c3e50;
+            font-size: 3rem; /* 增加字體大小 */
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 4px solid #3498db;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 20px;
+            color: #e74c3c;
+            font-size: 2.5rem;
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr)); /* 增加最小寬度 */
+            gap: 40px;
+            margin-bottom: 50px;
+        }
+        
+        .chart-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+            border-left: 8px solid #3498db;
+        }
+        
+        .chart-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.12);
+        }
+        
+        .chart-title {
+            font-size: 2.2rem; /* 增加字體大小 */
+            font-weight: 800;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .chart-title i {
+            margin-right: 15px;
+            color: #e74c3c;
+            font-size: 2rem;
+        }
+        
+        .summary-box {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            padding: 50px;
+            border-radius: 15px;
+            margin-top: 50px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .summary-title {
+            font-size: 2.8rem; /* 增加字體大小 */
+            font-weight: 900;
+            margin-bottom: 30px;
+            color: #f1c40f;
+            display: flex;
+            align-items: center;
+        }
+        
+        .summary-title i {
+            margin-right: 20px;
+            font-size: 2.5rem;
+        }
+        
+        .summary-text {
+            font-size: 2.2rem; /* 增加字體大小 */
+            font-weight: 700;
+            line-height: 1.7;
+        }
+        
+        .highlight {
+            color: #f1c40f;
+            font-weight: 900;
+        }
+        
+        .risk-item {
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border-left: 8px solid #e74c3c;
+            transition: all 0.3s ease;
+        }
+        
+        .risk-item:hover {
+            background: #ecf0f1;
+            transform: translateX(5px);
+        }
+        
+        .risk-title {
+            font-size: 2.3rem; /* 增加字體大小 */
+            font-weight: 800;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .risk-title i {
+            margin-right: 15px;
+            color: #e74c3c;
+            font-size: 2rem;
+        }
+        
+        .risk-desc {
+            font-size: 1.9rem; /* 增加字體大小 */
+            font-weight: 700;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .timeline-container {
+            display: flex;
+            flex-direction: column;
+            margin: 40px 0;
+        }
+        
+        .timeline-item {
+            display: flex;
+            margin-bottom: 35px;
+            position: relative;
+        }
+        
+        .timeline-date {
+            min-width: 140px;
+            background: #3498db;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 800;
+            font-size: 1.6rem;
+            margin-right: 35px;
+            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+            z-index: 2;
+        }
+        
+        .timeline-content {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            flex-grow: 1;
+            border-left: 6px solid #e74c3c;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+        
+        .timeline-title {
+            font-size: 2rem; /* 增加字體大小 */
+            font-weight: 800;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .timeline-title i {
+            margin-right: 12px;
+            color: #e74c3c;
+            font-size: 1.8rem;
+        }
+        
+        .timeline-desc {
+            font-size: 1.8rem; /* 增加字體大小 */
+            font-weight: 700;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: white;
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-top: 40px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+        }
+        
+        /* 新風險矩陣樣式 - 修正對齊問題 */
+        .matrix-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .matrix-wrapper {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 40px;
+        }
+        
+        .matrix-header {
+            display: flex;
+            position: relative;
+            width: 100%;
+        }
+        
+        .y-axis-label {
+            width: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 22px;
+            color: #2c3e50;
+            writing-mode: vertical-rl;
+            transform: rotate(0deg);
+            height: 500px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .matrix-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            width: calc(100% - 135px);
+        }
+        
+        /* 修正矩陣主體容器 - 使用grid確保對齊 */
+        .matrix-main {
+            display: grid;
+            grid-template-columns: 40px 1fr;
+            width: 100%;
+        }
+        
+        .impact-labels {
+            display: flex;
+            flex-direction: column;
+            width: 40px;
+            flex-shrink: 0;
+        }
+        
+        .impact-label-cell {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            padding: 10px 5px;
+            font-size: 18px;
+            background-color: #f8f9fa;
+            border-right: 2px solid #ddd;
+            color: #2c3e50;
+            height: 100px;
+            box-sizing: border-box;
+        }
+        
+        .matrix-rows {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            width: 100%;
+        }
+        
+        .matrix-row {
+            display: flex;
+            height: 100px;
+            width: 100%;
+        }
+        
+        .matrix-cell {
+            flex: 1;
+            border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: transform 0.2s;
+            width: calc(100% / 5);
+            box-sizing: border-box;
+        }
+        
+        .matrix-cell:hover {
+            transform: scale(1.03);
+            z-index: 2;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .risk-score {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        /* 修正機率標題列樣式 - 確保與下方矩陣單元格完全對齊 */
+        .probability-header {
+            display: flex;
+            margin-left: 0;
+            margin-bottom: 10px;
+            width: 100%;
+            grid-column: 2;
+        }
+        
+        .probability-cell {
+            flex: 1;
+            text-align: center;
+            font-weight: bold;
+            padding: 8px 0;
+            font-size: 18px;
+            color: #2c3e50;
+            width: calc(100% / 5);
+            box-sizing: border-box;
+        }
+        
+        .probability-cell:first-child {
+            width: calc(100% / 5);
+        }
+        
+        /* 修正X軸標籤容器 - 確保與矩陣單元格對齊 */
+        .x-axis-container {
+            display: flex;
+            margin-left: 0;
+            margin-top: 10px;
+            width: 100%;
+            grid-column: 2;
+            justify-content: center; /* 居中顯示單個標籤 */
+        }
+        
+        .x-axis-label {
+            flex: 0 0 auto; /* 不再均分寬度 */
+            text-align: center;
+            font-weight: bold;
+            font-size: 20px;
+            color: #2c3e50;
+            padding-top: 15px;
+            width: auto; /* 自動寬度 */
+        }
+        
+        .x-axis-descriptions {
+            display: flex;
+            margin-left: 0;
+            margin-top: 5px;
+            width: 100%;
+            grid-column: 2;
+        }
+        
+        .x-axis-description {
+            flex: 1;
+            text-align: center;
+            font-size: 16px;
+            color: #666;
+            padding: 5px 0;
+            width: calc(100% / 5);
+            box-sizing: border-box;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 0 20px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            margin-right: 10px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .risk-items {
+            background-color: #f8f9fa;
+            padding: 40px;
+            border-radius: 10px;
+            margin-top: 40px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .risk-items h3 {
+            margin-top: 0;
+            color: #1a2530;
+            border-bottom: 4px solid #3498db;
+            padding-bottom: 20px;
+            font-size: 36px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            margin-bottom: 30px;
+        }
+        
+        .risk-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+        }
+        
+        /* 專案特定風險項目樣式 - 優化長輩閱讀體驗 */
+        .risk-item-card {
+            background-color: white;
+            border-left: 8px solid #e74c3c;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            transition: transform 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .risk-item-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.15);
+        }
+        
+        .risk-title-card {
+            font-weight: 900 !important;
+            margin-bottom: 25px;
+            color: #1a2530;
+            font-size: 38px !important; /* 大幅加大標題字體 */
+            line-height: 1.4;
+            letter-spacing: 0.5px;
+        }
+        
+        .risk-details {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            font-size: 32px !important; /* 大幅加大詳細資訊字體 */
+            color: #1a2530;
+            margin-bottom: 20px;
+            font-weight: 900 !important; /* 超粗體 */
+            line-height: 1.5;
+        }
+        
+        .risk-details span {
+            display: block;
+            padding: 10px 0;
+        }
+        
+        .risk-level {
+            display: inline-block;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-weight: 900;
+            font-size: 30px !important; /* 大幅加大風險等級字體 */
+            color: white;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            letter-spacing: 1px;
+        }
+        
+        .risk-description {
+            font-size: 30px !important; /* 大幅加大描述文字字體 */
+            margin-top: 20px;
+            color: #1a2530;
+            line-height: 1.8;
+            font-weight: 800 !important; /* 超粗體 */
+            letter-spacing: 0.3px;
+        }
+        
+        .footnote {
+            font-size: 24px;
+            color: #1a2530;
+            text-align: center;
+            margin-top: 40px;
+            font-style: normal;
+            font-weight: 800;
+            padding: 20px;
+            background-color: #f0f7ff;
+            border-radius: 10px;
+        }
+        
+        /* SWOT分析樣式 - 加大加粗，優化間距避免重疊 */
+        .swot-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, auto); /* 修改為auto高度，避免固定高度導致溢出 */
+            gap: 30px;
+            margin: 40px 0 80px 0; /* 增加底部間距 */
+            padding: 0;
+            width: 100%;
+        }
+        
+        .swot-item {
+            padding: 40px;
+            border-radius: 15px;
+            color: white;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            min-height: 450px; /* 設定最小高度，確保內容不會擠壓 */
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .swot-item:hover {
+            transform: translateY(-8px);
+        }
+        
+        .swot-title {
+            font-size: 2.8rem; /* 加大字體 */
+            font-weight: 900; /* 加粗 */
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .swot-title i {
+            margin-right: 20px;
+            font-size: 2.5rem;
+        }
+        
+        .swot-list {
+            list-style-type: none;
+            flex-grow: 1;
+        }
+        
+        .swot-list li {
+            font-size: 2rem; /* 加大字體 */
+            font-weight: 800; /* 加粗 */
+            margin-bottom: 20px;
+            padding-left: 15px;
+            border-left: 5px solid rgba(255, 255, 255, 0.8);
+            padding-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .strengths { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .weaknesses { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .opportunities { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .threats { background: linear-gradient(135deg, #8e44ad, #9b59b6); }
+        
+        /* SWOT策略建議區塊專用樣式，確保與SWOT分析區塊明顯區隔 */
+        .swot-strategy-section {
+            margin-top: 80px !important; /* 大幅增加上邊距 */
+            padding: 60px 50px !important; /* 增加內邊距 */
+            border-top: 8px solid #f1c40f !important; /* 增加頂部邊框作為分隔 */
+        }
+        
+        .swot-strategy-title {
+            font-size: 3rem !important;
+            margin-bottom: 40px !important;
+        }
+        
+        .swot-strategy-text {
+            line-height: 2 !important; /* 增加行高提升可讀性 */
+            font-size: 2.3rem !important;
+        }
+        
+        @media (max-width: 1400px) {
+            .ste-logo {
+                width: 400px;
+                height: 400px;
+                margin-bottom: 30px;
+            }
+            
+            h1 {
+                font-size: 3.5rem;
+            }
+            
+            .swot-item {
+                min-height: 400px;
+            }
+            
+            .swot-strategy-text {
+                font-size: 2rem !important;
+            }
+            
+            /* 響應式調整風險項目字體 */
+            .risk-title-card {
+                font-size: 34px !important;
+            }
+            .risk-details {
+                font-size: 28px !important;
+            }
+            .risk-level {
+                font-size: 26px !important;
+            }
+            .risk-description {
+                font-size: 26px !important;
+            }
+        }
+        
+        @media (max-width: 1200px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .swot-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(4, auto);
+                gap: 40px; /* 增加行間距 */
+            }
+            
+            .swot-item {
+                min-height: 350px;
+                padding: 30px;
+            }
+            
+            h1 {
+                font-size: 3rem;
+            }
+            
+            .section-title {
+                font-size: 2.5rem;
+            }
+            
+            .ste-logo {
+                width: 350px;
+                height: 350px;
+                margin-bottom: 25px;
+            }
+            
+            .swot-strategy-section {
+                margin-top: 60px !important;
+                padding: 50px 40px !important;
+            }
+            
+            .swot-strategy-text {
+                font-size: 1.8rem !important;
+            }
+            
+            /* 響應式調整風險項目字體 */
+            .risk-title-card {
+                font-size: 30px !important;
+            }
+            .risk-details {
+                font-size: 24px !important;
+            }
+            .risk-level {
+                font-size: 22px !important;
+            }
+            .risk-description {
+                font-size: 24px !important;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .risk-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .swot-title {
+                font-size: 2.4rem;
+            }
+            
+            .swot-list li {
+                font-size: 1.8rem;
+            }
+            
+            .swot-strategy-text {
+                font-size: 1.6rem !important;
+            }
+            
+            /* 響應式調整風險項目字體 */
+            .risk-title-card {
+                font-size: 30px !important;
+            }
+            .risk-details {
+                font-size: 24px !important;
+            }
+            .risk-level {
+                font-size: 22px !important;
+            }
+            .risk-description {
+                font-size: 24px !important;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .tab {
+                padding: 20px 5px;
+                font-size: 1.6rem;
+            }
+            
+            .tab-content {
+                padding: 30px;
+            }
+            
+            .chart-card {
+                padding: 25px;
+            }
+            
+            .timeline-item {
+                flex-direction: column;
+            }
+            
+            .timeline-date {
+                margin-right: 0;
+                margin-bottom: 20px;
+                width: 100%;
+            }
+            
+            .title-container {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .ste-logo {
+                margin-bottom: 25px;
+                width: 400px;
+                height: 400px;
+            }
+            
+            .matrix-row {
+                height: 80px;
+            }
+            
+            .impact-label-cell {
+                font-size: 16px;
+                padding: 5px 3px;
+                height: 80px;
+            }
+            
+            .probability-cell {
+                font-size: 16px;
+            }
+            
+            .risk-score {
+                font-size: 26px;
+            }
+            
+            .y-axis-label {
+                font-size: 18px;
+                height: 400px;
+                width: 100px;
+            }
+            
+            .x-axis-label {
+                font-size: 18px;
+            }
+            
+            .risk-items h3 {
+                font-size: 28px;
+            }
+            
+            .x-axis-description {
+                font-size: 14px;
+            }
+            
+            .swot-item {
+                padding: 30px;
+                min-height: 300px;
+            }
+            
+            .swot-title {
+                font-size: 2.2rem;
+            }
+            
+            .swot-list li {
+                font-size: 1.6rem;
+            }
+            
+            .swot-strategy-section {
+                margin-top: 50px !important;
+                padding: 40px 30px !important;
+            }
+            
+            .swot-strategy-text {
+                font-size: 1.5rem !important;
+                line-height: 1.8 !important;
+            }
+            
+            /* 響應式調整風險項目字體 */
+            .risk-title-card {
+                font-size: 28px !important;
+            }
+            .risk-details {
+                font-size: 22px !important;
+            }
+            .risk-level {
+                font-size: 20px !important;
+            }
+            .risk-description {
+                font-size: 22px !important;
+            }
+            
+            /* 移動裝置拖曳提示調整 */
+            .tab::after {
+                opacity: 1;
+                font-size: 0.8rem;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .ste-logo {
+                width: 300px;
+                height: 300px;
+                margin-bottom: 20px;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .swot-title {
+                font-size: 2rem;
+            }
+            
+            .swot-list li {
+                font-size: 1.4rem;
+            }
+            
+            .swot-strategy-text {
+                font-size: 1.4rem !important;
+            }
+            
+            /* 響應式調整風險項目字體 */
+            .risk-title-card {
+                font-size: 24px !important;
+            }
+            .risk-details {
+                font-size: 20px !important;
+            }
+            .risk-level {
+                font-size: 18px !important;
+            }
+            .risk-description {
+                font-size: 20px !important;
+            }
+        }
+        
+        @media (max-width: 500px) {
+            .ste-logo {
+                width: 250px;
+                height: 250px;
+                margin-bottom: 15px;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .swot-strategy-section {
+                margin-top: 40px !important;
+                padding: 30px 20px !important;
+            }
+            
+            .swot-strategy-text {
+                font-size: 1.3rem !important;
+            }
+            
+            /* 響應式調整風險項目字體 */
+            .risk-title-card {
+                font-size: 22px !important;
+            }
+            .risk-details {
+                font-size: 18px !important;
+            }
+            .risk-level {
+                font-size: 16px !important;
+            }
+            .risk-description {
+                font-size: 18px !important;
+            }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(231, 76, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+        
+        /* 拖曳提示訊息 */
+        .drag-hint {
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="title-container">
+                <img src="https://i.urusai.cc/GXiu2.png" alt="STE NAME LOGO" class="ste-logo">
+                <h1>關注事件風險分析報告</h1>
+            </div>
+            <!-- 移除副標題 -->
+            <div class="date-badge">報告日期：2025年12月</div>
+        </header>
+        
+        <!-- 新增拖曳提示 -->
+        <div class="drag-hint">
+            <i class="fas fa-mouse-pointer"></i> 拖曳分頁可以調整順序
+        </div>
+        
+        <!-- 修改分頁順序：1.風險識別 2.風險矩陣 3.SWOT分析 4.總結 -->
+        <div class="tabs" id="sortable-tabs">
+            <div class="tab active" data-tab="details"><i class="fas fa-file-alt"></i> 風險識別</div>
+            <div class="tab" data-tab="matrix"><i class="fas fa-th-large"></i> 風險矩陣</div>
+            <div class="tab" data-tab="swot"><i class="fas fa-clipboard-list"></i> SWOT分析</div>
+            <div class="tab" data-tab="overview"><i class="fas fa-chart-line"></i> 總結</div>
+        </div>
+        
+        <!-- 風險識別頁面 (第一個顯示) -->
+        <div id="details" class="tab-content active">
+            <div class="section-title">
+                <i class="fas fa-file-alt"></i> 風險識別
+            </div>
+            
+            <div class="risk-item pulse">
+                <div class="risk-title"><i class="fas fa-exclamation-triangle"></i> 高雄三個專案之CBS變更事宜</div>
+                <div class="risk-desc">
+                    <strong>合約權責糾紛：</strong> 變更關鍵路徑時程（CBS）必須取得所有關聯廠商的書面同意，若僅依賴通知或口頭共識，將導致權責歸屬不明，未來可能引發訴訟爭議。<br>
+                    <strong>衝擊程度：高</strong> - 若分包商拒絕承認新版時程，或主張因時程變更產生額外費用，公司將面臨費用追索風險。<br>
+                    <strong>建議對策：</strong> 需盡速完成楊總交辦的任務，確認高雄三個專案過去每一次發文記錄和專業分包商名單，以確保合約對下控管到位，並滿足總部稽核要求。
+                </div>
+            </div>
+            
+            <div class="risk-item">
+                <div class="risk-title"><i class="fas fa-calendar-times"></i> TYGL專案對 Rotem 之展延主張（EOT）</div>
+                <div class="risk-desc">
+                    <strong>延遲主張導致的財務風險：</strong> 專案累計展延天數已達919天，超過無償展延的548天，存在371天的差異。若繼續延遲發文主張權利，可能失去對這371天的協商主動權，影響公司權益。<br>
+                    <strong>衝擊程度：高</strong> - 可能造成重大財務損失（罰款）或無法追索延期費用。<br>
+                    <strong>建議對策：</strong> 必須儘快發文主張展延天數（371天），不應等待CBS核定後再發文，以便累積佐證資料。現狀：函稿已完成但尚未發文。
+                </div>
+            </div>
+            
+            <div class="risk-item">
+                <div class="risk-title"><i class="fas fa-search"></i> 總部明年預計來台稽核</div>
+                <div class="risk-desc">
+                    <strong>缺乏統一文件控管平臺：</strong> 總部稽核將會檢查大型專案的完整收/發文管控方式，若沒有系統化控管，可能難以在稽核期間快速提供所有需要的證據。<br>
+                    <strong>衝擊程度：高</strong> - 若在稽核中無法展現合約管理能力和完備的文件，將對公司信譽及管理層造成直接衝擊。<br>
+                    <strong>建議對策：</strong> 楊總經理裁示針對這些大型專案建立NAS平臺檔案夾，控管所有收發文記錄。現狀：儘管會議有共識要建立類似ME06的專案資料庫架構，實際資料收集工作處於「準備中」，進度落後。
+                </div>
+            </div>
+            
+            <div class="summary-box">
+                <div class="summary-title"><i class="fas fa-tasks"></i> 緊急行動項目</div>
+                <div class="summary-text">
+                    1. 立即發文主張TYGL專案展延權利（371天差異）<br>
+                    2. 建立統一文件控管平臺，收錄所有專案收發文記錄<br>
+                    3. 確認高雄三個專案所有CBS變更的書面同意檔<br>
+                    4. 收集所有展延相關成本憑證（人力、保固等）<br>
+                    5. 明確權責歸屬及窗口，加快內部執行進度
+                </div>
+            </div>
+        </div>
+        
+        <!-- 風險矩陣頁面 - 已替換為新的矩陣設計 -->
+        <div id="matrix" class="tab-content">
+            <div class="section-title">
+                <i class="fas fa-th-large"></i> 風險矩陣分析
+            </div>
+            
+            <div class="matrix-container">
+                <div class="matrix-wrapper">
+                    <div class="matrix-header">
+                        <div class="y-axis-label" style="writing-mode: vertical-rl; transform: rotate(0deg);">衝擊</div>
+                        <div class="matrix-content">
+                            <!-- 矩陣主體容器 - 使用grid確保對齊 -->
+                            <div class="matrix-main">
+                                <!-- 機率橫軸標題 -->
+                                <div class="probability-header">
+                                    <div class="probability-cell">1</div>
+                                    <div class="probability-cell">2</div>
+                                    <div class="probability-cell">3</div>
+                                    <div class="probability-cell">4</div>
+                                    <div class="probability-cell">5</div>
+                                </div>
+                                
+                                <!-- 風險矩陣本體 -->
+                                <div class="impact-labels">
+                                    <div class="impact-label-cell">5</div>
+                                    <div class="impact-label-cell">4</div>
+                                    <div class="impact-label-cell">3</div>
+                                    <div class="impact-label-cell">2</div>
+                                    <div class="impact-label-cell">1</div>
+                                </div>
+                                
+                                <div class="matrix-rows" id="risk-matrix">
+                                    <!-- 衝擊等級5 (極嚴重) -->
+                                    <div class="matrix-row">
+                                        <!-- 機率1-5的單元格 -->
+                                    </div>
+                                    
+                                    <!-- 衝擊等級4 (嚴重) -->
+                                    <div class="matrix-row">
+                                        <!-- 機率1-5的單元格 -->
+                                    </div>
+                                    
+                                    <!-- 衝擊等級3 (普通) -->
+                                    <div class="matrix-row">
+                                        <!-- 機率1-5的單元格 -->
+                                    </div>
+                                    
+                                    <!-- 衝擊等級2 (輕微) -->
+                                    <div class="matrix-row">
+                                        <!-- 機率1-5的單元格 -->
+                                    </div>
+                                    
+                                    <!-- 衝擊等級1 (極輕微) -->
+                                    <div class="matrix-row">
+                                        <!-- 機率1-5的單元格 -->
+                                    </div>
+                                </div>
+                                
+                                <!-- X軸名稱 - 只保留一個 -->
+                                <div class="x-axis-container">
+                                    <div class="x-axis-label">機率</div>
+                                </div>
+                                
+                                <!-- X軸詳細描述 -->
+                                <div class="x-axis-descriptions">
+                                    <div class="x-axis-description">幾乎不會發生 (1)</div>
+                                    <div class="x-axis-description">不太可能發生 (2)</div>
+                                    <div class="x-axis-description">可能發生 (3)</div>
+                                    <div class="x-axis-description">很可能發生 (4)</div>
+                                    <div class="x-axis-description">幾乎肯定發生 (5)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 圖例 -->
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #2ecc71;"></div>
+                        <span>低風險區</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #3D9EFF;"></div>
+                        <span>中等風險區</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #e67e22;"></div>
+                        <span>高風險區</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #e74c3c;"></div>
+                        <span>極高風險區</span>
+                    </div>
+                </div>
+                
+                <!-- 特定風險項目 -->
+                <div class="risk-items">
+                    <h3>專案特定風險項目</h3>
+                    <div class="risk-list" id="risk-list">
+                        <!-- 風險項目會透過JavaScript動態填入 -->
+                    </div>
+                </div>
+                
+                <div class="footnote">
+                    風險分數 = 衝擊 × 機率 | 風險分數範圍：1 (最低) 到 25 (最高)
+                </div>
+            </div>
+        </div>
+        
+        <!-- SWOT分析頁面 - 修正重疊問題 -->
+        <div id="swot" class="tab-content">
+            <div class="section-title">
+                <i class="fas fa-clipboard-list"></i> SWOT分析
+            </div>
+            
+            <!-- SWOT分析區塊 -->
+            <div class="swot-container">
+                <div class="swot-item strengths">
+                    <div class="swot-title"><i class="fas fa-check-circle"></i> 優勢 (Strengths)</div>
+                    <ul class="swot-list">
+                        <li>管理層已清楚識別風險問題</li>
+                        <li>有明確的對策和建議方向</li>
+                        <li>專案合約法務發文函稿範本已完成準備</li>
+                        <li>楊總已下達明確指示桃園及高雄大型專案配合辦理</li>
+                    </ul>
+                </div>
+                
+                <div class="swot-item weaknesses">
+                    <div class="swot-title"><i class="fas fa-times-circle"></i> 劣勢 (Weaknesses)</div>
+                    <ul class="swot-list">
+                        <li>內部執行進度延宕</li>
+                        <li>權責歸屬及窗口不明確</li>
+                        <li>缺乏統一文件控管平臺</li>
+                        <li>展延成本證據不完整</li>
+                    </ul>
+                </div>
+                
+                <div class="swot-item opportunities">
+                    <div class="swot-title"><i class="fas fa-bullseye"></i> 機會 (Opportunities)</div>
+                    <ul class="swot-list">
+                        <li>建立統一文件控管系統</li>
+                        <li>改善內部執行流程</li>
+                        <li>強化對分包商的管理</li>
+                        <li>提升總部稽核評價</li>
+                    </ul>
+                </div>
+                
+                <div class="swot-item threats">
+                    <div class="swot-title"><i class="fas fa-exclamation-triangle"></i> 威脅 (Threats)</div>
+                    <ul class="swot-list">
+                        <li>分包商追索額外費用風險</li>
+                        <li>總部稽核發現發現缺失項目</li>
+                        <li>展延費用無法追索</li>
+                        <li>潛在重大財務損失</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- SWOT策略建議區塊 - 獨立樣式確保區隔 -->
+            <div class="summary-box swot-strategy-section">
+                <div class="summary-title swot-strategy-title"><i class="fas fa-chart-line"></i> SWOT策略建議</div>
+                <div class="summary-text swot-strategy-text">
+                    <span class="highlight">利用優勢抓住機會：</span> 利用管理層的明確指示，盡快建立統一文件控管系統，改善執行流程。<br><br>
+                    <span class="highlight">利用優勢減少威脅：</span> 依循已完成的專案合約法務發文函稿範本，立即發文主張展延權利，減少財務損失風險。<br><br>
+                    <span class="highlight">克服劣勢減少威脅：</span> 明確權責歸屬及窗口，加快執行進度，避免總部稽核發現缺失項目。<br><br>
+                    <span class="highlight">克服劣勢抓住機會：</span> 建立文件控管平臺同時，完善展延成本證據收集。
+                </div>
+            </div>
+        </div>
+        
+        <!-- 總結頁面 -->
+        <div id="overview" class="tab-content">
+            <div class="charts-container">
+                <div class="chart-card">
+                    <div class="chart-title"><i class="fas fa-chart-bar"></i> 風險衝擊程度分佈</div>
+                    <canvas id="impactChart"></canvas>
+                </div>
+                
+                <div class="chart-card">
+                    <div class="chart-title"><i class="fas fa-history"></i> 風險時間線與狀態</div>
+                    <div class="timeline-container">
+                        <div class="timeline-item">
+                            <div class="timeline-date">已完成</div>
+                            <div class="timeline-content">
+                                <div class="timeline-title"><i class="fas fa-exclamation-triangle"></i> 風險識別完成</div>
+                                <div class="timeline-desc">已完成主要風險識別與評估。</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-date">進行中</div>
+                            <div class="timeline-content">
+                                <div class="timeline-title"><i class="fas fa-tools"></i> 對策方案制定</div>
+                                <div class="timeline-desc">已確定文件管控資料庫架構，正在執行相關收發檔紀錄收集及整理。</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-date">待完成</div>
+                            <div class="timeline-content">
+                                <div class="timeline-title"><i class="fas fa-calendar-check"></i> 總部稽核準備</div>
+                                <div class="timeline-desc">建立統一文件管控資料庫，準備總部稽核所需文件。</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="summary-box">
+                <div class="summary-title"><i class="fas fa-lightbulb"></i> 主要發現與總結</div>
+                <div class="summary-text">
+                    最大的風險在於：雖然管理層已清楚指出所有合約主張和證據收集的必要性，但<span class="highlight">內部執行面臨進度延宕或權責不清</span>。這使得公司在面對外部風險（如延期罰款和分包商追索）以及內部高層壓力（總部稽核）時，處於極為被動且脆弱的狀態。
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2025 事件風險分析報告 | 品保部</p>
+            <p style="margin-top: 15px; font-size: 1.8rem;">管理會議簡報使用</p>
+        </footer>
+    </div>
+    
+    <script>
+        // 等待頁面載入完成後執行
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- 初始化拖曳排序功能 ---
+            const tabsContainer = document.getElementById('sortable-tabs');
+            
+            // 初始化Sortable
+            const sortable = new Sortable(tabsContainer, {
+                animation: 150, // 動畫時間
+                ghostClass: 'sortable-ghost', // 拖曳時的半透明效果
+                chosenClass: 'sortable-chosen', // 選中時的樣式
+                dragClass: 'sortable-drag', // 拖曳中的樣式
+                handle: '.tab', // 拖曳的區域
+                onEnd: function(evt) {
+                    // 拖曳結束後的回調
+                    console.log(`分頁已從位置 ${evt.oldIndex} 移動到 ${evt.newIndex}`);
+                    
+                    // 如果拖曳的是當前啟動的分頁，保持啟動狀態
+                    const activeTab = document.querySelector('.tab.active');
+                    if (activeTab) {
+                        activeTab.classList.add('active');
+                    }
+                }
+            });
+            
+            // --- 分頁切換功能 ---
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            // 初始化：隱藏所有內容，只顯示第一個
+            contents.forEach(content => {
+                if (!content.classList.contains('active')) {
+                    content.style.display = 'none';
+                }
+            });
+            
+            // 為每個分頁添加點擊事件
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // 移除所有active類別
+                    tabs.forEach(t => t.classList.remove('active'));
+                    contents.forEach(c => {
+                        c.classList.remove('active');
+                        c.style.display = 'none';
+                    });
+                    
+                    // 為當前分頁添加active類別
+                    this.classList.add('active');
+                    const tabId = this.getAttribute('data-tab');
+                    const activeContent = document.getElementById(tabId);
+                    
+                    if (activeContent) {
+                        activeContent.classList.add('active');
+                        activeContent.style.display = 'block';
+                    }
+                });
+            });
+            
+            // 風險衝擊程度分佈圖表
+            const impactCtx = document.getElementById('impactChart').getContext('2d');
+            if (impactCtx) {
+                new Chart(impactCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['極高風險', '高風險', '中風險', '低風險'],
+                        datasets: [{
+                            data: [1, 2, 3, 0],
+                            backgroundColor: [
+                                '#e74c3c',
+                                '#e67e22',
+                                '#3D9EFF',
+                                '#2ecc71'
+                            ],
+                            borderWidth: 3,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    font: {
+                                        size: 20,
+                                        weight: 'bold'
+                                    },
+                                    padding: 30
+                                }
+                            },
+                            tooltip: {
+                                titleFont: {
+                                    size: 20
+                                },
+                                bodyFont: {
+                                    size: 20
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.raw || 0;
+                                        return `${label}: ${value}項`;
+                                    }
+                                }
+                            },
+                            datalabels: {
+                                color: '#fff',
+                                font: {
+                                    size: 26,
+                                    weight: 'bold'
+                                },
+                                formatter: (value) => `${value}項`
+                            }
+                        },
+                        animation: {
+                            animateScale: true,
+                            animateRotate: true,
+                            duration: 2000
+                        }
+                    },
+                    plugins: [ChartDataLabels]
+                });
+            }
+            
+            // --- 新風險矩陣功能 ---
+            // 定義風險矩陣顏色和等級
+            function getRiskInfo(score) {
+                if (score <= 4) return {
+                    color: '#2ecc71',
+                    level: '低風險'
+                };
+                if (score <= 9) return {
+                    color: '#3D9EFF',
+                    level: '中等風險'
+                };
+                if (score <= 16) return {
+                    color: '#e67e22',
+                    level: '高風險'
+                };
+                return {
+                    color: '#e74c3c',
+                    level: '極高風險'
+                };
+            }
+            
+            // 建立風險矩陣
+            function createRiskMatrix() {
+                const matrix = document.getElementById('risk-matrix');
+                const rows = matrix.querySelectorAll('.matrix-row');
+                
+                // 清除現有內容
+                rows.forEach(row => {
+                    row.innerHTML = '';
+                });
+                
+                // 衝擊等級從5到1 (極嚴重到極輕微)
+                const impactLevels = [5, 4, 3, 2, 1];
+                
+                rows.forEach((row, rowIndex) => {
+                    const impact = impactLevels[rowIndex];
+                    
+                    // 機率等級從1到5
+                    for (let probability = 1; probability <= 5; probability++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'matrix-cell';
+                        
+                        const score = impact * probability;
+                        const riskInfo = getRiskInfo(score);
+                        cell.style.backgroundColor = riskInfo.color;
+                        
+                        const scoreElement = document.createElement('div');
+                        scoreElement.className = 'risk-score';
+                        scoreElement.textContent = score;
+                        cell.appendChild(scoreElement);
+                        
+                        row.appendChild(cell);
+                    }
+                });
+            }
+            
+            // 定義特定風險項目
+            const riskItems = [
+                {
+                    title: "展延成本憑證不完整",
+                    impact: 5,
+                    probability: 3,
+                    score: 15,
+                    description: "無法向業主追加費用，造成潛在的營運成本損失，並可能被總部認為內部成本管控不嚴謹。"
+                },
+                {
+                    title: "延遲主張財務風險",
+                    impact: 4,
+                    probability: 2,
+                    score: 8,
+                    description: "未及時主張財務權利可能導致損失或無法追索延期費用，影響公司現金流與預算控制。"
+                },
+                {
+                    title: "合約權責糾紛",
+                    impact: 5,
+                    probability: 4,
+                    score: 20,
+                    description: "一旦進入爭議、仲裁或訴訟，常伴隨巨額索賠、工期延宕與關係惡化，對成本、現金流與聲譽都有嚴重影響。"
+                },
+                {
+                    title: "文件佐證與追加費用",
+                    impact: 5,
+                    probability: 2,
+                    score: 10,
+                    description: "無法獲得應有的展延工期，同時也無法向業主追加展延相關成本（如人力資源、延長保固等），影響公司權益。"
+                },
+                {
+                    title: "缺乏統一文件控管平臺",
+                    impact: 3,
+                    probability: 3,
+                    score: 9,
+                    description: "公司NAS未收集備份專案EOT、Claim重要文件、可能導致日後證據缺漏與遺失風險，無法展現合約管理能力和完備的文件，影響日後可能遭遇的爭議、仲裁或訴訟證據的完整性。"
+                },
+                {
+                    title: "總部稽核發現缺失",
+                    impact: 4,
+                    probability: 2,
+                    score: 8,
+                    description: "未符合總部稽核要求可能導致總部對台灣分公司大型專案執行及合約管理能力的評價。"
+                }
+            ];
+            
+            // 顯示風險項目
+            function displayRiskItems() {
+                const riskList = document.getElementById('risk-list');
+                
+                riskItems.forEach(item => {
+                    const riskElement = document.createElement('div');
+                    riskElement.className = 'risk-item-card';
+                    
+                    const riskInfo = getRiskInfo(item.score);
+                    
+                    riskElement.innerHTML = `
+                        <div class="risk-title-card">${item.title}</div>
+                        <div class="risk-details">
+                            <span>衝擊等級: ${item.impact} | 發生機率: ${item.probability}</span>
+                            <span style="color: ${riskInfo.color}; font-weight: 900;">風險分數: ${item.score}</span>
+                        </div>
+                        <div class="risk-level" style="background-color: ${riskInfo.color};">${riskInfo.level}</div>
+                        <div class="risk-description">${item.description}</div>
+                    `;
+                    
+                    // 設置左側邊框顏色
+                    riskElement.style.borderLeftColor = riskInfo.color;
+                    
+                    riskList.appendChild(riskElement);
+                });
+            }
+            
+            // 初始化風險矩陣
+            createRiskMatrix();
+            displayRiskItems();
+            
+            // --- 其他動畫效果 ---
+            // 添加圖表載入動畫
+            document.querySelectorAll('.chart-card').forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(30px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 500 + index * 300);
+            });
+            
+            // SWOT項目動畫
+            setTimeout(() => {
+                document.querySelectorAll('.swot-item').forEach((item, index) => {
+                    item.style.opacity = '0';
+                    item.style.transform = 'scale(0.9)';
+                    
+                    setTimeout(() => {
+                        item.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+                        item.style.opacity = '1';
+                        item.style.transform = 'scale(1)';
+                    }, 500 + index * 300);
+                });
+            }, 500);
+            
+            // SWOT策略建議區塊動畫
+            setTimeout(() => {
+                const strategySection = document.querySelector('.swot-strategy-section');
+                if (strategySection) {
+                    strategySection.style.opacity = '0';
+                    strategySection.style.transform = 'translateY(20px)';
+                    
+                    setTimeout(() => {
+                        strategySection.style.transition = 'opacity 1s ease, transform 1s ease';
+                        strategySection.style.opacity = '1';
+                        strategySection.style.transform = 'translateY(0)';
+                    }, 2000);
+                }
+            }, 500);
+            
+            // 時間線項目動畫
+            setTimeout(() => {
+                document.querySelectorAll('.timeline-item').forEach((item, index) => {
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateX(-30px)';
+                    
+                    setTimeout(() => {
+                        item.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+                        item.style.opacity = '1';
+                        item.style.transform = 'translateX(0)';
+                    }, 500 + index * 300);
+                });
+            }, 500);
+            
+            // 風險項目動畫
+            setTimeout(() => {
+                document.querySelectorAll('.risk-item').forEach((item, index) => {
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateX(-30px)';
+                    
+                    setTimeout(() => {
+                        item.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+                        item.style.opacity = '1';
+                        item.style.transform = 'translateX(0)';
+                    }, 500 + index * 300);
+                });
+            }, 500);
+        });
+    </script>
+</body>
+</html>
